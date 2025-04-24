@@ -1,5 +1,9 @@
 # LIN-Alternator-Tester by Dynastarter
 
+https://t.me/dynastarter
+
+https://youtu.be/kj4xf7QOMg0
+
 This Arduino code is a fairly comprehensive implementation for working with the LIN bus:
 
 It can detect devices, poll them, and send control commands taking into account various LIN modes (1.x and 2.x).
@@ -130,6 +134,10 @@ Initializes the LCD, prints the initial message
 ============================================================================================================================================================================================
 ============================================================================================================================================================================================
 ============================================================================================================================================================================================
+
+https://t.me/dynastarter
+
+https://youtu.be/kj4xf7QOMg0
 
 Этот Arduino код представляет собой достаточно комплексную реализацию для работы с шиной LIN:
 
