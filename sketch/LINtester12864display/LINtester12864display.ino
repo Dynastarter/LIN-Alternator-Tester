@@ -663,12 +663,14 @@ void encoderTask() {
     Serial.print("voltLIN1: ");
     Serial.println(voltLIN1[valueLIN], HEX); // Выводим значение из voltLIN1 в шестнадцатеричном формате
   }
-
+/*
   if (enc.isHold()) {                     // Если кнопка удерживается
     buttonHeld = true;                    // Устанавливаем флаг buttonHeld = true
   } else if (enc.isRelease()) {           // Если кнопка отпущена
     buttonHeld = false;                   // Устанавливаем флаг buttonHeld = false
   }
+*/
+  buttonHeld = enc.isHolded();
 }
 
 // =====================================================================
