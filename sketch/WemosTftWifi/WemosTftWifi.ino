@@ -665,11 +665,14 @@ void encoderTask() {
     Serial.print("voltLIN1: ");
     Serial.println(voltLIN1[valueLIN], HEX);
   }
+  /*
   if (enc.isHold()) {
     buttonHeld = true;
   } else if (enc.isRelease()) {
     buttonHeld = false;
   }
+*/
+  buttonHeld = enc.isHolded();
 }
 
 // ------------------------
