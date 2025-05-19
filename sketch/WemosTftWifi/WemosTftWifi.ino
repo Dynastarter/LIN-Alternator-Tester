@@ -1,5 +1,5 @@
-#define USE_DISPLAY 1   // 1 — использовать дисплей, 0 — отключить
-#define USE_WEB     0   // 1 — использовать веб-интерфейс, 0 — отключить
+#define USE_DISPLAY 0   // 1 — использовать дисплей, 0 — отключить
+#define USE_WEB     1   // 1 — использовать веб-интерфейс, 0 — отключить
 
 #include <Wire.h>
 #include <SPI.h>  // Для работы с аппаратным SPI
@@ -17,6 +17,10 @@ using fs::FS;
 const char* ssid = "LIN";           // SSID сети WiFi, к которой будет подключаться устройство
 const char* password = "12345678";  // Пароль для подключения к WiFi
 WebServer server(80);               // Создаем объект веб-сервера, который слушает порт 80
+
+//#define USE_DISPLAY 1   // 1 — использовать дисплей, 0 — отключить
+//#define USE_WEB     0   // 1 — использовать веб-интерфейс, 0 — отключить
+
 
 
 // Инициализация дисплея ST7789 через аппаратный SPI
@@ -964,8 +968,9 @@ void setup() {
   HARDWARE_SERIAL.begin(9600);
   // Автоопределение скорости LIN
   detectLINBaudRate();
-  strcpy(messageLine3, "Start");
+ // strcpy(messageLine3, "Start");
 
+#if USE_WEB
   // Запускаем WiFi в режиме точки доступа
   WiFi.softAP(ssid, password);             // Инициализируем точку доступа с заданными SSID и паролем
   Serial.println("Access Point started");  // Выводим сообщение о запуске точки доступа
@@ -977,13 +982,16 @@ void setup() {
   server.on("/toggle_encoder", handleToggleEncoder);  // Регистрируем обработчик для URL "/toggle_encoder"
   server.begin();                                     // Запускаем веб-сервер
   detectLINBaudRate();                                // Вызываем функцию для обнаружения скорости LIN, с которой работают устройства
+  #endif
 }
 
 // =========================================================
 // Функция loop
 void loop() {
   encoderTask();
+  #if USE_WEB
   server.handleClient();  // Обрабатываем входящие HTTP-запросы веб-сервера
+  #endif
   if (searchMode) {
     deviceCount = 0;
     for (int i = 0; i < 3; i++) {
@@ -1085,7 +1093,7 @@ void loop() {
      tft.fillScreen(TFT_BLACK);
       #endif
      delay(300);
-      strcpy(messageLine3, "Poisk");
+      //strcpy(messageLine3, "Poisk");
     }
    
   }
