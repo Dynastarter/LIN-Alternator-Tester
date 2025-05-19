@@ -1,3 +1,6 @@
+#define USE_DISPLAY 1   // 1 — использовать дисплей, 0 — отключить
+#define USE_WEB     0   // 1 — использовать веб-интерфейс, 0 — отключить
+
 #include <Wire.h>
 #include <SPI.h>  // Для работы с аппаратным SPI
 //#include <Adafruit_GFX.h>     // Базовая графическая библиотека Adafruit
@@ -14,6 +17,9 @@ using fs::FS;
 const char* ssid = "LIN";           // SSID сети WiFi, к которой будет подключаться устройство
 const char* password = "12345678";  // Пароль для подключения к WiFi
 WebServer server(80);               // Создаем объект веб-сервера, который слушает порт 80
+
+#define USE_DISPLAY 1   // 1 — использовать дисплей, 0 — отключить
+#define USE_WEB     0   // 1 — использовать веб-интерфейс, 0 — отключить
 
 
 
@@ -942,14 +948,21 @@ void handleRoot() {
 // =========================================================
 // Функция setup
 void setup() {
+  #if USE_DISPLAY
   tft.init();  // Инициализирует дисплей; разрешение берётся из настроек User_Setup.h
   tft.invertDisplay(false);
   tft.setRotation(1);                      // Поворот дисплея (значения 0-3)
   tft.fillScreen(TFT_BLACK);               // Используем цвет TFT_BLACK
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);  // Первый параметр — цвет текста, второй — фон (если нужно)
-  tft.setTextSize(2);                      // Масштабирование шрифта
-  tft.setCursor(0, 0);                     // Установка курсора
-
+  
+  tft.setTextSize(3); // Устанавливаем размер текста
+  int x = 0;          // Начальная позиция по горизонтали
+  // Статическая часть "LIN:"
+  String part = "LIN:";
+  tft.setTextColor(TFT_GREEN, TFT_BLACK); // Зеленый текст на черном фоне
+  tft.setCursor(x, 0); // Устанавливаем курсор в начало
+  tft.print(part);     // Выводим текст
+  x += tft.textWidth(part); // Сдвигаем позицию на ширину текста
+ #endif
 
   Serial.begin(115200);
   HARDWARE_SERIAL.begin(9600);
@@ -1059,18 +1072,22 @@ void loop() {
         }
       }
     }
+
+   #if USE_DISPLAY
      // Обновляем только изменившиеся области дисплея:
     updateHeader();
     updateMessage();
     updateDeviceList();
     updateVoltage();
-  
+  #endif
 
     if (deviceLost) {
       Serial.println("Device lost. Returning to search mode.");
       searchMode = true;
       deviceCount = 0;
+       #if USE_DISPLAY
      tft.fillScreen(TFT_BLACK);
+      #endif
      delay(300);
       strcpy(messageLine3, "Poisk");
     }
