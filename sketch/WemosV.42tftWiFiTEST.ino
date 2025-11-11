@@ -429,8 +429,8 @@ static void bsd_tx_reads_and_write(uint8_t writeData, bool useCmdTiming) {
   delayMicroseconds(BSD_DELAY_BETWEEN_REG_US);
   uint8_t frameW0[19];
   bsd_buildWriteFrame(writeData, frameW0);
-  if (useCmdTiming) bsd_sendCommandFrame(frameW0);
-  else bsd_sendFrame(frameW0);
+  bsd_sendFrame(frameW0);  // Всегда одна функция!
+(void)useCmdTiming;      // Подавить warning
 }
 bool bsd_tryDevice() {
   bsd_begin_rx();
