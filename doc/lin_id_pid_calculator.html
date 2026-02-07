@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LIN ID ⇄ PID калькулятор</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; padding: 20px; background: #0b0f14; color: #e7edf5; }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    h1 { margin: 0 0 14px; font-size: 22px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 860px){ .grid { grid-template-columns: 1fr 1fr; } }
+    .card { background: #121a24; border: 1px solid #1f2a3a; border-radius: 16px; padding: 14px; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px; }
+    label { font-size: 12px; color: #a9b7c8; }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid #243246;
+      background: #0f1620;
+      color: #e7edf5;
+      outline: none;
+      font-size: 15px;
+    }
+    input:focus { border-color: #4b7cff; }
+    .out {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px dashed #2b3a52;
+      background: #0c121b;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .hint { font-size: 12px; color: #93a6bd; margin-top: 8px; line-height: 1.35; }
+    .ok { color: #7dff9c; }
+    .bad { color: #ff6b6b; }
+    .btns { display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
+    button{
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid #2a3a52;
+      background: #182334;
+      color: #e7edf5;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    button:hover{ border-color:#4b7cff; }
+    .mini { font-size: 12px; padding: 7px 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>LIN калькулятор: ID ⇄ PID (Protected Identifier)</h1>
+
+    <div class="grid">
+      <div class="card">
+        <strong>ID → PID</strong>
+        <div class="row">
+          <label for="idIn">LIN ID (0..63). Можно: 25, 0x19, 0b011001</label>
+          <input id="idIn" placeholder="например: 0x19" value="0x19" />
+        </div>
+
+        <div class="btns">
+          <button class="mini" id="idExample">Пример (ID=0x19)</button>
+          <button class="mini" id="idClear">Очистить</button>
+          <button class="mini" id="copyPid">Копировать PID (hex)</button>
+        </div>
+
+        <div class="row">
+          <label>Результат</label>
+          <div class="out" id="idOut"></div>
+        </div>
+
+        <div class="hint">
+          Формулы: P0 = ID0⊕ID1⊕ID2⊕ID4; P1 = ¬(ID1⊕ID3⊕ID4⊕ID5); PID = ID + (P0&lt;&lt;6) + (P1&lt;&lt;7)
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>PID → ID + проверка паритета</strong>
+        <div class="row">
+          <label for="pidIn">LIN PID (0..255). Можно: 0xD2, 210, 0b11010010</label>
+          <input id="pidIn" placeholder="например: 0xD2" value="" />
+        </div>
+
+        <div class="btns">
+          <button class="mini" id="pidFromId">Вставить PID из левого окна</button>
+          <button class="mini" id="pidClear">Очистить</button>
+          <button class="mini" id="copyId">Копировать ID (hex)</button>
+        </div>
+
+        <div class="row">
+          <label>Результат</label>
+          <div class="out" id="pidOut"></div>
+        </div>
+
+        <div class="hint">
+          Проверка: из PID берём ID (6 бит), пересчитываем P0/P1 и сравниваем с битами 6 и 7.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  function parseNum(s) {
+    s = (s ?? "").toString().trim().toLowerCase();
+    if (!s) return null;
+    s = s.replace(/[\s_]/g, "");
+    let n;
+    if (s.startsWith("0x")) n = parseInt(s.slice(2), 16);
+    else if (s.startsWith("0b")) n = parseInt(s.slice(2), 2);
+    else n = parseInt(s, 10);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function bits(n, width) {
+    return (n >>> 0).toString(2).padStart(width, "0");
+  }
+
+  function hex(n, width=2) {
+    return "0x" + (n >>> 0).toString(16).toUpperCase().padStart(width, "0");
+  }
+
+  function linComputeParity(id6) {
+    const id = id6 & 0x3F;
+    const id0 = (id >> 0) & 1;
+    const id1 = (id >> 1) & 1;
+    const id2 = (id >> 2) & 1;
+    const id3 = (id >> 3) & 1;
+    const id4 = (id >> 4) & 1;
+    const id5 = (id >> 5) & 1;
+
+    const p0 = (id0 ^ id1 ^ id2 ^ id4) & 1;
+    const p1 = (~(id1 ^ id3 ^ id4 ^ id5)) & 1;
+    return { p0, p1 };
+  }
+
+  function idToPid(id6) {
+    const id = id6 & 0x3F;
+    const { p0, p1 } = linComputeParity(id);
+    return (id | (p0 << 6) | (p1 << 7)) & 0xFF;
+  }
+
+  function pidToIdAndCheck(pid8) {
+    const pid = pid8 & 0xFF;
+    const id = pid & 0x3F;
+    const p0_in = (pid >> 6) & 1;
+    const p1_in = (pid >> 7) & 1;
+    const { p0, p1 } = linComputeParity(id);
+    const ok = (p0 === p0_in) && (p1 === p1_in);
+    return { id, ok, p0_in, p1_in, p0, p1 };
+  }
+
+  const idIn = document.getElementById("idIn");
+  const pidIn = document.getElementById("pidIn");
+  const idOut = document.getElementById("idOut");
+  const pidOut = document.getElementById("pidOut");
+
+  let lastPidHex = "";
+  let lastIdHex = "";
+
+  function renderIdSide() {
+    const n = parseNum(idIn.value);
+    if (n === null) {
+      idOut.textContent = "Введите ID (0..63).";
+      lastPidHex = "";
+      return;
+    }
+    if (n < 0 || n > 63) {
+      idOut.textContent = `Ошибка: ID вне диапазона 0..63 (получено ${n}).`;
+      lastPidHex = "";
+      return;
+    }
+    const pid = idToPid(n);
+    const { p0, p1 } = linComputeParity(n);
+    lastPidHex = hex(pid, 2);
+
+    idOut.textContent =
+`ID  = ${hex(n, 2)}  (${n})  bin:${bits(n, 6)}
+P0  = ${p0}
+P1  = ${p1}
+PID = ${hex(pid, 2)} (${pid}) bin:${bits(pid, 8)}`;
+  }
+
+  function renderPidSide() {
+    const n = parseNum(pidIn.value);
+    if (n === null) {
+      pidOut.textContent = "Введите PID (0..255).";
+      lastIdHex = "";
+      return;
+    }
+    if (n < 0 || n > 255) {
+      pidOut.textContent = `Ошибка: PID вне диапазона 0..255 (получено ${n}).`;
+      lastIdHex = "";
+      return;
+    }
+    const r = pidToIdAndCheck(n);
+    lastIdHex = hex(r.id, 2);
+
+    pidOut.innerHTML =
+`PID = ${hex(n, 2)} (${n})  bin:${bits(n, 8)}
+ID  = ${hex(r.id, 2)} (${r.id})  bin:${bits(r.id, 6)}
+P0(in)=${r.p0_in}  P1(in)=${r.p1_in}
+P0(calc)=${r.p0}  P1(calc)=${r.p1}
+
+ПАРИТЕТ: <span class="${r.ok ? "ok" : "bad"}">${r.ok ? "OK" : "ERROR"}</span>`;
+  }
+
+  idIn.addEventListener("input", () => { renderIdSide(); });
+  pidIn.addEventListener("input", () => { renderPidSide(); });
+
+  document.getElementById("idExample").onclick = () => { idIn.value = "0x19"; renderIdSide(); };
+  document.getElementById("idClear").onclick = () => { idIn.value = ""; renderIdSide(); };
+  document.getElementById("pidClear").onclick = () => { pidIn.value = ""; renderPidSide(); };
+
+  document.getElementById("pidFromId").onclick = () => {
+    if (!lastPidHex) renderIdSide();
+    if (lastPidHex) { pidIn.value = lastPidHex; renderPidSide(); }
+  };
+
+  async function copyText(t) {
+    try { await navigator.clipboard.writeText(t); } catch { /* ignore */ }
+  }
+
+  document.getElementById("copyPid").onclick = () => { if (lastPidHex) copyText(lastPidHex); };
+  document.getElementById("copyId").onclick = () => { if (lastIdHex) copyText(lastIdHex); };
+
+  renderIdSide();
+  renderPidSide();
+</script>
+</body>
+</html>
